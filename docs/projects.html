@@ -16,6 +16,7 @@
     <a class="brand" href="./"><img src="assets/logo.svg" alt="" width="28" height="28"><span>XQ</span></a>
     <nav>
       <a href="guide.html" data-page="guide.html">Guide</a><a href="projects.html" data-page="projects.html">Projects</a>
+      <a href="https://akainq.github.io/xq-packages/">Packages</a>
       <a href="index.html#install">Install</a>
       <a href="https://github.com/akainq/xq">GitHub</a>
     </nav>
@@ -25,16 +26,16 @@
 <div class="wrap doc-grid">
   <aside class="toc">
     <button class="toc-toggle" type="button" aria-expanded="false">Contents</button>
-    <nav aria-label="Contents"><ul><li class="l2"><a href="#xqtoml">xq.toml</a></li><li class="l2"><a href="#commands">Commands</a></li><li class="l2"><a href="#tests">Tests</a></li><li class="l2"><a href="#xq-versions">XQ versions</a></li></ul></nav>
+    <nav aria-label="Contents"><ul><li class="l2"><a href="#xqtoml">xq.toml</a></li><li class="l2"><a href="#commands">Commands</a></li><li class="l2"><a href="#packages">Packages</a></li><li class="l3"><a href="#versions">Versions</a></li><li class="l3"><a href="#the-registry">The registry</a></li><li class="l2"><a href="#tests">Tests</a></li><li class="l2"><a href="#xq-versions">XQ versions</a></li></ul></nav>
   </aside>
   <main class="content">
 <h1>Projects</h1>
-<p>A project is a directory with an <code>xq.toml</code> file: its name and version, the XQ version it needs, its programs and tests. Without a file argument, the commands <code>xq build</code>, <code>xq run</code>, <code>xq check</code> and <code>xq test</code> work on the project the current directory is in: the nearest directory with an <code>xq.toml</code> up the tree. Given a file, they work on that one file, as without a project.</p>
+<p>A project is a directory with an <code>xq.toml</code> file: its name and version, the XQ version it needs, its programs, its tests and the packages it uses. Without a file argument, the commands <code>xq build</code>, <code>xq run</code>, <code>xq check</code> and <code>xq test</code> work on the project the current directory is in: the nearest directory with an <code>xq.toml</code> up the tree. Given a file, they work on that one file, as without a project.</p>
 <h2 id="xqtoml"><a class="anchor" href="#xqtoml" aria-label="Link to this section">#</a>xq.toml</h2>
 <pre class="code" data-lang="toml"><code><span class="ty">[package]</span>
 <span class="fn">name</span> = <span class="str">"chat"</span>
 <span class="fn">version</span> = <span class="str">"0.1.0"</span>
-<span class="fn">xq</span> = <span class="str">"0.9"</span>              <span class="com"># the XQ version the project is written for</span>
+<span class="fn">xq</span> = <span class="str">"0.10"</span>             <span class="com"># the XQ version the project is written for</span>
 
 <span class="ty">[[bin]]                 </span><span class="com"># a program of the project; there can be several</span>
 <span class="fn">name</span> = <span class="str">"server"</span>
@@ -47,11 +48,40 @@
 
 <span class="ty">[test]</span>
 <span class="fn">dir</span> = <span class="str">"tests"</span>           <span class="com"># where the tests are (this is also the default)</span></code></pre>
-<ul><li><code>name</code> consists of lowercase ASCII letters, digits, <code>-</code> and <code>_</code>; <code>version</code> is three numbers.</li><li><code>xq</code> is the XQ version the project is written for: <code>0.9</code> means any 0.9.x, and <code>0.9.2</code> means 0.9.2 or newer within 0.9. Before 1.0, a change in the second number counts as incompatible; from 1.0 on, a change in the first: <code>1.2</code> accepts 1.2 and newer, up to 2.0. A compiler of a different version refuses to build the project and says which version it was written for.</li><li>Without <code>[[bin]]</code> there is one program: <code>main.xq</code> in the project root, named after the project.</li><li>An unknown key is an error that lists the known keys: a typo does not slip through silently.</li></ul>
+<ul><li><code>name</code> consists of lowercase ASCII letters, digits, <code>-</code> and <code>_</code>; <code>version</code> is three numbers.</li><li><code>xq</code> is the XQ version the project is written for: <code>0.10</code> means any 0.10.x, and <code>0.10.2</code> means 0.10.2 or newer within 0.10. Before 1.0, a change in the second number counts as incompatible; from 1.0 on, a change in the first: <code>1.2</code> accepts 1.2 and newer, up to 2.0. A compiler of a different version refuses to build the project and says which version it was written for.</li><li>Without <code>[[bin]]</code> there is one program: <code>main.xq</code> in the project root, named after the project.</li><li>An unknown key is an error that lists the known keys: a typo does not slip through silently.</li></ul>
 <p>The file is TOML. The parser handles the part of TOML that manifests use: tables and arrays of tables, keys (dotted ones too), strings in <code>"…"</code> and <code>'…'</code>, integers, <code>true</code> and <code>false</code>, arrays (multi-line ones too), inline tables <code>{…}</code>, <code>#</code> comments. There are no multi-line strings, floats or dates: the error says so and gives the line.</p>
 <h2 id="commands"><a class="anchor" href="#commands" aria-label="Link to this section">#</a>Commands</h2>
 <div class="table"><table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code>xq build</code></td><td>builds all the project's programs into <code>target/release/</code> (with <code>-g</code>, into <code>target/debug/</code>)</td></tr><tr><td><code>xq build server</code></td><td>builds one program; <code>-o path</code> writes it to that file</td></tr><tr><td><code>xq run [program] [-- args]</code></td><td>builds and runs a program (the name can be omitted if there is only one)</td></tr><tr><td><code>xq check</code></td><td>type-checks the project's programs and tests</td></tr><tr><td><code>xq test [filter]</code></td><td>builds and runs the project's tests (those whose names contain the filter)</td></tr><tr><td><code>xq test path…</code></td><td>the tests in these directories and files, inside a project or outside one</td></tr></tbody></table></div>
-<p>Imports work as in a single file: your own modules by relative path (<code>./lib/greet</code>), standard ones as <code>std/…</code>.</p>
+<p>Imports work as in a single file: your own modules by relative path (<code>./lib/greet</code>), standard ones as <code>std/…</code>; packages by name (below).</p>
+<h2 id="packages"><a class="anchor" href="#packages" aria-label="Link to this section">#</a>Packages</h2>
+<p>A package is a project whose modules other projects import. Its module for <code>import "name"</code> is <code>lib.xq</code> at the root of the project, or the one named in <code>[lib]</code>; <code>import "name/x"</code> is the module <code>x</code> next to it.</p>
+<pre class="code" data-lang="toml"><code><span class="ty">[package]</span>
+<span class="fn">name</span> = <span class="str">"qr"</span>
+<span class="fn">version</span> = <span class="str">"1.2.0"</span>
+<span class="fn">xq</span> = <span class="str">"0.10"</span>
+<span class="fn">description</span> = <span class="str">"QR codes"</span>                      <span class="com"># the description, address and license are for the registry</span>
+<span class="fn">repository</span> = <span class="str">"https://github.com/someone/qr"</span>
+<span class="fn">license</span> = <span class="str">"MIT"</span>
+
+<span class="ty">[lib]</span>
+<span class="fn">main</span> = <span class="str">"src/qr.xq"</span>                            <span class="com"># lib.xq by default</span>
+
+<span class="ty">[dependencies]</span>
+<span class="fn">util</span> = <span class="str">"1.1"</span>                                                      <span class="com"># from the registry</span>
+<span class="fn">img</span> = { git = <span class="str">"https://github.com/someone/img"</span>, tag = <span class="str">"v0.3.0"</span> }  <span class="com"># from git (or rev = "commit")</span>
+<span class="fn">draft</span> = { path = <span class="str">"../draft"</span> }                                     <span class="com"># from a directory</span></code></pre>
+<p>A project uses the packages of its <code>[dependencies]</code> and imports them by name:</p>
+<pre class="code" data-lang="ts"><code><span class="kw">import</span> { encode } <span class="kw">from</span> <span class="str">"qr"</span>;
+<span class="kw">import</span> { <span class="ty">Matrix</span> } <span class="kw">from</span> <span class="str">"qr/matrix"</span>;</code></pre>
+<p>A module can import only what its own project depends on: the dependencies of package <code>qr</code> are its own, not the project's. Packages are compiled together with the program, like its own modules.</p>
+<h3 id="versions"><a class="anchor" href="#versions" aria-label="Link to this section">#</a>Versions</h3>
+<p><code>"1.2"</code> means version 1.2.0 or newer in the same line, <code>"1.2.3"</code> means 1.2.3 or newer. A line is a set of versions compatible with each other: from 1.0 on, the first number holds them together (1.x); before 1.0, the second one (0.4.x). A program has one version of each package: the smallest one that everyone asking for it accepts (minimal version selection, as in Go). Newer versions never come by themselves, only when asked for (<code>xq update</code>). Asking for different lines (1.x and 2.x) is an error, and the error says who asks for what.</p>
+<p>The choice is written to <code>xq.lock</code>, as exact commits; commit it. As long as <code>xq.toml</code> asks for the same, builds take the versions from there and do not touch the network.</p>
+<div class="table"><table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code>xq add qr</code></td><td>adds a package of the registry to <code>[dependencies]</code> (its newest version) and fetches it</td></tr><tr><td><code>xq add qr 1.1</code></td><td>the same, with this version</td></tr><tr><td><code>xq update [packages…]</code></td><td>asks for the newest versions in their lines (of all packages, or of those named) and chooses again</td></tr><tr><td><code>xq fetch</code></td><td>chooses the versions and fetches the packages (<code>build</code>, <code>run</code>, <code>check</code> and <code>test</code> do it themselves)</td></tr><tr><td><code>--offline</code> (or <code>XQ_OFFLINE=1</code>)</td><td>fetches nothing: everything needed is in the cache already</td></tr></tbody></table></div>
+<p>Packages are fetched with git, which must be in <code>PATH</code>. The repositories are kept in the cache, <code>~/.xq</code> (or <code>XQ_HOME</code>), and the files of each version in its <code>pkg/</code>.</p>
+<h3 id="the-registry"><a class="anchor" href="#the-registry" aria-label="Link to this section">#</a>The registry</h3>
+<p>The package registry is <a href="https://github.com/akainq/xq-packages" rel="noopener">akainq/xq-packages</a>, with a searchable site at <a href="https://akainq.github.io/xq-packages/" rel="noopener">akainq.github.io/xq-packages</a>. A package of the registry is a git repository with tags <code>vX.Y.Z</code>. To add one, open a pull request with a file <code>packages/name.toml</code>; a new version is a new tag: the registry's robot reads the tags and builds the index (the branch <code>index</code>) with the versions, their commits and dependencies. A version that made it into the index never changes, even if its tag is moved.</p>
+<p>A package of the registry depends only on packages of the registry. <code>XQ_REGISTRY</code> names another registry: a git repository with the index on branch <code>index</code>, or a directory with the index.</p>
 <h2 id="tests"><a class="anchor" href="#tests" aria-label="Link to this section">#</a>Tests</h2>
 <p>A test is a program <code>name.xq</code> in the tests directory or its subdirectories (except <code>lib</code>, which holds modules that the tests import). A test passes if the program prints exactly what is in <code>name.out</code>, exits with code 0 and does not leak memory: the runtime counts it as each process exits (<code>XQ_CHECK_LEAKS=1</code>). A <code>name.in</code> next to the test is fed to its standard input. Lines at the start of a test say more:</p>
 <div class="table"><table><thead><tr><th>Line</th><th>Meaning</th></tr></thead><tbody><tr><td><code>// needs: library opus</code> (or <code>// needs: opus</code>)</td><td>the test loads this dynamic library; without it, the test is skipped</td></tr><tr><td><code>// needs: program node</code></td><td>the test runs this program from <code>PATH</code>; without it, the test is skipped</td></tr><tr><td><code>// needs: gpu</code></td><td>the test draws (<code>std/gpu</code>); without a Vulkan loader (MoltenVK on macOS), it is skipped</td></tr><tr><td><code>// alone</code></td><td>the test measures time and runs while no other test is building or running</td></tr><tr><td><code>// exit: 3</code></td><td>the code the program must exit with</td></tr><tr><td><code>// env: NAME=value</code></td><td>an environment variable for the program</td></tr></tbody></table></div>
@@ -63,7 +93,7 @@
 
 <footer class="bottom">
   <div class="wrap">
-    <span>XQ 0.9.1</span>
+    <span>XQ 0.10.0</span>
     <span>MIT OR Apache-2.0</span>
     <a href="https://github.com/akainq/xq">github.com/akainq/xq</a>
   </div>
