@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>XQ — immutable values, isolated processes, native code</title>
-<meta name="description" content="XQ is a compiled language for concurrent programs: isolated lightweight processes with typed messages and supervisors, immutable values, native code through LLVM with no garbage collector.">
+<meta name="description" content="XQ is a compiled language for concurrent programs: isolated lightweight processes with typed messages and supervisors, immutable values, native code through LLVM with no garbage collector and no memory leaks.">
 <meta property="og:title" content="The XQ programming language">
-<meta property="og:description" content="Immutable values, isolated processes, native code: a compiled language for concurrent programs, with typed messages, supervisors and no garbage collector.">
+<meta property="og:description" content="Immutable values, isolated processes, native code: a compiled language for concurrent programs, with typed messages, supervisors, no garbage collector and no memory leaks.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/site.js" defer></script>
@@ -33,7 +33,7 @@
       <h1>Immutable values,<br>isolated processes,<br><span class="grad">native code.</span></h1>
       <p class="lede">XQ is a compiled language for concurrent programs. Lightweight processes, each with a heap of
         its own, talk through typed messages; a crash stays inside its process, and supervisors restart it. Programs
-        compile to native code through LLVM, with no garbage collector and no virtual machine.</p>
+        compile to native code through LLVM, with no garbage collector, no virtual machine and no memory leaks.</p>
       <div class="cta">
         <a class="btn primary" href="#install">Install XQ 0.10.0</a>
         <a class="btn" href="guide.html">Read the guide</a>
@@ -93,9 +93,10 @@ value: 42</pre>
           processes over every core.</p>
       </article>
       <article class="card">
-        <h3>No garbage collector</h3>
-        <p>Immutable values cannot form cycles, so reference counting frees memory right after its last use, and counts
-          need no atomics. A value with a single owner is updated in place: appends and record updates cost amortized O(1).</p>
+        <h3>No garbage collector, no leaks</h3>
+        <p>Immutable values cannot form cycles, so reference counting frees each value right after its last use and
+          never misses one; <code>xq test</code> checks it on every test. Counts need no atomics, and a value with a
+          single owner is updated in place: appends and record updates cost amortized O(1).</p>
       </article>
       <article class="card">
         <h3>Failures stay local</h3>

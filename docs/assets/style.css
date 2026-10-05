@@ -93,7 +93,7 @@ code { font-size: .88em; }
 .eyebrow { margin: 0 0 14px; color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .hero h1 { margin: 0; font-size: clamp(38px, 5vw, 60px); line-height: 1.04; letter-spacing: -.025em; font-weight: 800; }
 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.lede { font-size: 19px; color: var(--muted); margin: 22px 0 30px; max-width: 34em; }
+.lede { font-size: 19px; color: var(--muted); margin: 22px 0 30px; max-width: 34em; text-wrap: pretty; }
 .cta { display: flex; gap: 12px; flex-wrap: wrap; }
 .btn {
   display: inline-flex; align-items: center; height: 46px; padding: 0 20px; border-radius: 11px;

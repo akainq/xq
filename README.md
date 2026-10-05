@@ -4,7 +4,7 @@
 
 XQ is a compiled language for concurrent programs. Lightweight processes, each with a heap of its own, talk through
 typed messages; a crash stays inside its process, and supervisors restart it. Programs compile to native code through
-LLVM, with no garbage collector and no virtual machine.
+LLVM, with no garbage collector, no virtual machine and no memory leaks.
 
 Website and guide: **https://akainq.github.io/xq/**
 
