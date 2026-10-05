@@ -2,9 +2,9 @@
 
 **Immutable values, isolated processes, native code.**
 
-XQ is a compiled language for concurrent programs. It reads like TypeScript and is built like Erlang: lightweight
-processes with heaps of their own exchange typed messages, a crash stays inside its process, and supervisors restart
-it. Programs compile to native code through LLVM, with no garbage collector and no virtual machine.
+XQ is a compiled language for concurrent programs. Lightweight processes, each with a heap of its own, talk through
+typed messages; a crash stays inside its process, and supervisors restart it. Programs compile to native code through
+LLVM, with no garbage collector and no virtual machine.
 
 Website and guide: **https://akainq.github.io/xq/**
 
