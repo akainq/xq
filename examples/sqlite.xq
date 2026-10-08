@@ -1,16 +1,19 @@
 // SQLite through calls to C functions. The library is sqlite3 (libsqlite3.so.0 on Linux);
-// on Windows 10 and later, the built-in winsqlite3.dll will do.
+// on Windows 10 and later, the built-in winsqlite3.dll will do. The functions that may wait for
+// the disk are `blocking`: they run on a thread of the I/O pool, and the scheduler thread runs
+// other processes meanwhile. sqlite3_exec takes an XQ function, which SQLite calls for each row:
+// it runs in the calling process, during the call.
 import * as ffi from "std/ffi";
 
 declare library "sqlite3", "winsqlite3" {
   function sqlite3_libversion(): string;
-  function sqlite3_open(filename: string, out db: Pointer | null): i32;
+  blocking function sqlite3_open(filename: string, out db: Pointer | null): i32;
   function sqlite3_close(db: Pointer): i32;
   function sqlite3_errmsg(db: Pointer): string;
-  function sqlite3_exec(
+  blocking function sqlite3_exec(
     db: Pointer,
     sql: string,
-    callback: Pointer | null,
+    row: ((arg: Pointer | null, columns: i32, values: Pointer, names: Pointer) => i32) | null,
     arg: Pointer | null,
     out error: Pointer | null,
   ): i32;
@@ -30,7 +33,7 @@ declare library "sqlite3", "winsqlite3" {
     bytes: i32,
     destructor: Pointer,
   ): i32;
-  function sqlite3_step(stmt: Pointer): i32;
+  blocking function sqlite3_step(stmt: Pointer): i32;
   function sqlite3_column_int64(stmt: Pointer, column: i32): i64;
   function sqlite3_column_text(stmt: Pointer, column: i32): string | null;
   function sqlite3_finalize(stmt: Pointer): i32;
@@ -59,6 +62,29 @@ function exec(db: Db, sql: string): Result<null> {
   const msg = ffi.readCString(err);
   sqlite3_free(err);
   return { ok: false, error: msg };
+}
+
+/** Column `i` of a row SQLite gives to a function of sqlite3_exec: an array of C strings. */
+function column(texts: Pointer, i: int): string {
+  const p = ffi.readPointer(texts, i * 8);
+  return p === null ? "NULL" : ffi.readCString(p);
+}
+
+/** Prints the rows of `sql`: SQLite calls the function for each. */
+function show(db: Db, sql: string): void {
+  const [_, err] = sqlite3_exec(
+    db.handle,
+    sql,
+    (_, n, values, names) => {
+      console.log(range(0, n).map((i) => `${column(names, i)}=${column(values, i)}`).join(" "));
+      return 0;
+    },
+    null,
+  );
+  if (err !== null) {
+    console.log(ffi.readCString(err));
+    sqlite3_free(err);
+  }
 }
 
 function insert(db: Db, name: string, age: int): Result<null> {
@@ -119,6 +145,7 @@ function main(): void {
   } else {
     console.log(q.error);
   }
+  show(db, "SELECT name, age FROM users ORDER BY name");
   const bad = exec(db, "SELECT * FROM nowhere");
   console.log(bad.ok ? "ok" : bad.error);
   sqlite3_close(db.handle);
