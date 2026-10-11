@@ -52,12 +52,11 @@ folder to `PATH`. It holds `xq` and the runtime libraries next to it.
 | macOS, Apple Silicon | `xq-<version>-aarch64-macos.tar.gz` |
 | macOS, Intel | `xq-<version>-x86_64-macos.tar.gz` |
 
-On Linux nothing else is needed: the archive carries the LLVM XQ compiles with (clang and lld). Elsewhere XQ compiles
-programs with clang 15 or later:
+On Windows and Linux nothing else is needed: the archive carries the LLVM XQ compiles with (clang and lld) and what
+programs link with. On macOS XQ compiles programs with clang 15 or later:
 
+- **Windows:** nothing to install; Windows 10 or later.
 - **Linux:** nothing to install; programs need glibc 2.39 or later (Ubuntu 24.04, Debian 13).
-- **Windows:** [LLVM](https://github.com/llvm/llvm-project/releases) (clang) and the C++ build tools of
-  [Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
 - **macOS:** `xcode-select --install`. A browser marks downloaded files as quarantined: download with `curl -LO`, or
   run `xattr -dr com.apple.quarantine xq-*` before unpacking.
 
