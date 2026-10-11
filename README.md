@@ -57,6 +57,8 @@ programs link with. On macOS XQ compiles programs with clang 15 or later:
 
 - **Windows:** nothing to install; Windows 10 or later.
 - **Linux:** nothing to install; programs need glibc 2.39 or later (Ubuntu 24.04, Debian 13).
+- **Other platforms:** the archives for Windows and Linux build programs for all three platforms:
+  `xq build app.xq --target x86_64-linux` (or `x86_64-windows`, `aarch64-linux`).
 - **macOS:** `xcode-select --install`. A browser marks downloaded files as quarantined: download with `curl -LO`, or
   run `xattr -dr com.apple.quarantine xq-*` before unpacking.
 
