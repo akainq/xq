@@ -73,8 +73,8 @@ xq run examples/hello.xq
 - [Projects and tests](https://akainq.github.io/xq/projects.html): `xq.toml`, `xq build`, `xq test`
 - [Packages](https://akainq.github.io/xq/projects.html#packages): `xq add`, versions and `xq.lock`; the registry is
   [akainq.github.io/xq-packages](https://akainq.github.io/xq-packages/)
-- [Examples](examples): processes, supervisors, a chat on three nodes, an HTTP server, SQLite through C, windows
-  and graphics
+- [Examples](examples): processes, supervisors, chats on three nodes (rooms as processes and as process groups),
+  an HTTP server, SQLite through C, windows and graphics
 
 ## This repository
 
