@@ -3,8 +3,8 @@
 **Immutable values, isolated processes, native code.**
 
 XQ is a compiled language for concurrent programs. Lightweight processes, each with a heap of its own, talk through
-typed messages; a crash stays inside its process, and supervisors restart it. Programs compile to native code through
-LLVM, with no garbage collector, no virtual machine and no memory leaks.
+typed messages, on one machine or across several; a crash stays inside its process, and supervisors restart it.
+Programs compile to native code through LLVM, with no garbage collector, no virtual machine and no memory leaks.
 
 Website and guide: **https://akainq.github.io/xq/**
 
@@ -73,7 +73,8 @@ xq run examples/hello.xq
 - [Projects and tests](https://akainq.github.io/xq/projects.html): `xq.toml`, `xq build`, `xq test`
 - [Packages](https://akainq.github.io/xq/projects.html#packages): `xq add`, versions and `xq.lock`; the registry is
   [akainq.github.io/xq-packages](https://akainq.github.io/xq-packages/)
-- [Examples](examples): processes, supervisors, an HTTP server, SQLite through C, windows and graphics
+- [Examples](examples): processes, supervisors, a chat on three nodes, an HTTP server, SQLite through C, windows
+  and graphics
 
 ## This repository
 
