@@ -1,43 +1,64 @@
 # XQ
 
-**Immutable values, isolated processes, native code.**
+**One program. Many machines. Native code.**
 
-XQ is a compiled language for concurrent programs. Lightweight processes, each with a heap of its own, talk through
-typed messages, on one machine or across several; a crash stays inside its process, and supervisors restart it.
-Programs compile to native code through LLVM, with no garbage collector, no virtual machine and no memory leaks.
+XQ is a compiled language for distributed systems. Lightweight isolated processes talk through typed messages, and a
+pid works the same whether its process is next door or on another machine: `send`, `call`, `link` and `monitor`
+cross the network as they are. When a machine goes away, links and monitors say so with a message, and supervisors
+start the work again elsewhere. Programs compile to native code through LLVM — no virtual machine, no garbage
+collector.
 
 Website and guide: **https://akainq.github.io/xq/**
 
 ```ts
-type Msg =
-  | { type: "inc"; by: int }
-  | { type: "get"; replyTo: Pid<int> };
+import * as node from "std/node";
 
-// A process is a function; its state lives in the arguments of a tail call.
-function counter(this: Process<Msg>, value: int): void {
+type Job = { type: "square"; n: int; reply: Pid<int> };
+
+// Exported, so that any node of the cluster can start it.
+export function worker(this: Process<Job>): void {
   receive {
-    { type: "inc", by } => counter(value + by),
-    { type: "get", replyTo } => {
-      replyTo.send(value);
-      counter(value);
+    { type: "square", n, reply } => {
+      reply.send(n * n);
+      worker();
     },
   }
 }
 
+// On 10.0.0.2 the same program starts as node "b".
 function main(this: Process<int>): void {
-  const c = spawn(counter, 0);
-  c.send({ type: "inc", by: 42 });
-  c.send({ type: "get", replyTo: self() });
+  node.start({ name: "a", host: "10.0.0.1" });
+  node.connect("b@10.0.0.2:4370");
+  // A process on the other machine. Its pid is like any
+  // other: send, call, link and monitor take it as it is.
+  const w = node.spawn("b", worker);
+  if (!w.ok) return;
+  w.value.send({ type: "square", n: 12, reply: self() });
   receive {
-    n => console.log("value:", n),
+    n => console.log("b says:", n),
   }
 }
 ```
 
 ```
-$ xq run counter.xq
-value: 42
+$ XQ_NODE_SECRET=s3cret xq run cluster.xq
+b says: 144
 ```
+
+- **A pid is a pid.** `send`, `call`, `link`, `monitor`, `pid.kill` and broadcasts take a pid of a process of another
+  node; `node.spawn` starts an exported function there, `node.find` finds a process by its name.
+- **Failures are messages.** A node that crashes, hangs or drops off the network fires every link and monitor through
+  it: `Exit` and `Down` with reason `noconnection`, and a supervisor can start its children again on a node that is
+  still up.
+- **Typed on the wire.** The compiler writes a codec for every message type, and the receiving node checks each
+  message against the mailbox type of its receiver.
+- **A cluster by itself.** Process groups across the nodes, all the nodes connected to each other, connections
+  encrypted with Noise and no certificates, long messages in pieces that do not hold up the others.
+- **Fast.** Between two nodes of one machine (Linux), a call takes 10 µs (Erlang/OTP 29: 45), one sender sends 2.6
+  million messages a second (0.68 million), and a broadcast through a group on three nodes makes 7.4 million
+  deliveries a second (1.9 million).
+- **The rest of a language.** Immutable values, processes with heaps of their own, reference counting without a
+  garbage collector, supervisors, HTTP, PostgreSQL and Redis clients, C calls, graphics on Vulkan.
 
 ## Install
 

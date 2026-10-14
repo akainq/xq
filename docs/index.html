@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>XQ — immutable values, isolated processes, native code</title>
-<meta name="description" content="XQ is a compiled language for concurrent programs: isolated lightweight processes with typed messages and supervisors, immutable values, native code through LLVM with no garbage collector and no memory leaks.">
-<meta property="og:title" content="The XQ programming language">
-<meta property="og:description" content="Immutable values, isolated processes, native code: a compiled language for concurrent programs, with typed messages, supervisors, no garbage collector and no memory leaks.">
+<title>XQ — processes on any machine, typed messages, native code</title>
+<meta name="description" content="XQ is a compiled language for distributed systems: lightweight isolated processes talk through typed messages on one machine or across a cluster, with links, monitors, supervisors and process groups, compiled to native code through LLVM with no garbage collector.">
+<meta property="og:title" content="The XQ programming language: processes on any machine, compiled">
+<meta property="og:description" content="A pid is a pid on any machine: send, call, link and monitor cross the network as they are, failures come as messages, and messages are typed. Native code through LLVM, no garbage collector.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/site.js" defer></script>
@@ -18,9 +18,10 @@
     <a class="brand" href="./"><img src="assets/logo.svg" alt="" width="28" height="28"><span>XQ</span></a>
     <nav>
       <a href="guide.html">Guide</a>
+      <a href="guide.html#several-machines-stdnode">Distribution</a>
       <a href="projects.html">Projects</a>
-      <a href="https://akainq.github.io/xq-packages/">Packages</a>
-      <a href="#install">Install</a>
+      <a class="wide" href="https://akainq.github.io/xq-packages/">Packages</a>
+      <a class="wide" href="#install">Install</a>
       <a href="https://github.com/akainq/xq">GitHub</a>
     </nav>
   </div>
@@ -29,100 +30,248 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="hero-text">
-      <p class="eyebrow">XQ 0.10.13 · Windows · Linux · macOS</p>
-      <h1>Immutable values,<br>isolated processes,<br><span class="grad">native code.</span></h1>
-      <p class="lede">XQ is a compiled language for concurrent programs. Lightweight processes, each with a heap of
-        its own, talk through typed messages, on one machine or across several; a crash stays inside its process, and
-        supervisors restart it. Programs compile to native code through LLVM, with no garbage collector, no virtual
-        machine and no memory leaks.</p>
+      <p class="eyebrow">XQ 0.10.14 · Windows · Linux · macOS</p>
+      <h1>One program.<br>Many machines.<br><span class="grad">Native code.</span></h1>
+      <p class="lede">XQ is a compiled language for distributed systems. Lightweight isolated processes talk through
+        typed messages, and a pid works the same whether its process is next door or on another machine:
+        <code>send</code>, <code>call</code>, <code>link</code> and <code>monitor</code> cross the network as they are.
+        When a machine goes away, links and monitors say so with a message, and supervisors start the work again
+        elsewhere. Programs compile to native code through LLVM — no virtual machine, no garbage collector.</p>
       <div class="cta">
-        <a class="btn primary" href="#install">Install XQ 0.10.13</a>
-        <a class="btn" href="guide.html">Read the guide</a>
+        <a class="btn primary" href="#install">Install XQ 0.10.14</a>
+        <a class="btn" href="guide.html#several-machines-stdnode">Distribution in the guide</a>
       </div>
+      <p class="hint">Built systems out of processes, mailboxes and supervisors before? Then you know how XQ works.
+        What is new: the compiler checks every message, and a call between two nodes of one machine takes 10 µs.</p>
     </div>
     <div class="hero-code">
       <div class="window">
-        <div class="bar"><i></i><i></i><i></i><b>counter.xq</b></div>
-<pre class="code" data-lang="xq"><code><span class="kw">type</span> <span class="ty">Msg</span> <span class="op">=</span>
-  <span class="op">|</span> { <span class="kw">type</span><span class="op">:</span> <span class="str">"inc"</span>; by<span class="op">:</span> <span class="ty">int</span> }
-  <span class="op">|</span> { <span class="kw">type</span><span class="op">:</span> <span class="str">"get"</span>; replyTo<span class="op">:</span> <span class="ty">Pid</span><span class="op">&lt;</span><span class="ty">int</span><span class="op">&gt;</span> };
+        <div class="bar"><i></i><i></i><i></i><b>cluster.xq — node a</b></div>
+<pre class="code" data-lang="xq"><code><span class="kw">import</span> <span class="op">*</span> <span class="kw">as</span> node <span class="kw">from</span> <span class="str">"std/node"</span>;
 
-<span class="com">// A process is a function; its state lives in</span>
-<span class="com">// the arguments of a tail call.</span>
-<span class="kw">function</span> <span class="fn">counter</span>(<span class="kw">this</span><span class="op">:</span> <span class="ty">Process</span><span class="op">&lt;</span><span class="ty">Msg</span><span class="op">&gt;</span>, value<span class="op">:</span> <span class="ty">int</span>)<span class="op">:</span> <span class="ty">void</span> {
+<span class="kw">type</span> <span class="ty">Job</span> <span class="op">=</span> { <span class="kw">type</span><span class="op">:</span> <span class="str">"square"</span>; n<span class="op">:</span> <span class="ty">int</span>; reply<span class="op">:</span> <span class="ty">Pid</span><span class="op">&lt;</span><span class="ty">int</span><span class="op">&gt;</span> };
+
+<span class="com">// Exported, so that any node of the cluster can start it.</span>
+<span class="kw">export</span> <span class="kw">function</span> <span class="fn">worker</span>(<span class="kw">this</span><span class="op">:</span> <span class="ty">Process</span><span class="op">&lt;</span><span class="ty">Job</span><span class="op">&gt;</span>)<span class="op">:</span> <span class="ty">void</span> {
   <span class="kw">receive</span> {
-    { <span class="kw">type</span><span class="op">:</span> <span class="str">"inc"</span>, by } <span class="op">=&gt;</span> <span class="fn">counter</span>(value <span class="op">+</span> by),
-    { <span class="kw">type</span><span class="op">:</span> <span class="str">"get"</span>, replyTo } <span class="op">=&gt;</span> {
-      replyTo.<span class="bi">send</span>(value);
-      <span class="fn">counter</span>(value);
+    { <span class="kw">type</span><span class="op">:</span> <span class="str">"square"</span>, n, reply } <span class="op">=&gt;</span> {
+      reply.<span class="bi">send</span>(n <span class="op">*</span> n);
+      <span class="fn">worker</span>();
     },
   }
 }
 
+<span class="com">// On 10.0.0.2 the same program starts as node "b".</span>
 <span class="kw">function</span> <span class="fn">main</span>(<span class="kw">this</span><span class="op">:</span> <span class="ty">Process</span><span class="op">&lt;</span><span class="ty">int</span><span class="op">&gt;</span>)<span class="op">:</span> <span class="ty">void</span> {
-  <span class="kw">const</span> c <span class="op">=</span> <span class="bi">spawn</span>(counter, <span class="num">0</span>);
-  c.<span class="bi">send</span>({ <span class="kw">type</span><span class="op">:</span> <span class="str">"inc"</span>, by<span class="op">:</span> <span class="num">42</span> });
-  c.<span class="bi">send</span>({ <span class="kw">type</span><span class="op">:</span> <span class="str">"get"</span>, replyTo<span class="op">:</span> <span class="bi">self</span>() });
+  node.<span class="fn">start</span>({ name<span class="op">:</span> <span class="str">"a"</span>, host<span class="op">:</span> <span class="str">"10.0.0.1"</span> });
+  node.<span class="fn">connect</span>(<span class="str">"b@10.0.0.2:4370"</span>);
+  <span class="com">// A process on the other machine. Its pid is like any</span>
+  <span class="com">// other: send, call, link and monitor take it as it is.</span>
+  <span class="kw">const</span> w <span class="op">=</span> node.<span class="bi">spawn</span>(<span class="str">"b"</span>, worker);
+  <span class="kw">if</span> (<span class="op">!</span>w.ok) <span class="kw">return</span>;
+  w.value.<span class="bi">send</span>({ <span class="kw">type</span><span class="op">:</span> <span class="str">"square"</span>, n<span class="op">:</span> <span class="num">12</span>, reply<span class="op">:</span> <span class="bi">self</span>() });
   <span class="kw">receive</span> {
-    n <span class="op">=&gt;</span> <span class="bi">console</span>.<span class="fn">log</span>(<span class="str">"value:"</span>, n),
+    n <span class="op">=&gt;</span> <span class="bi">console</span>.<span class="fn">log</span>(<span class="str">"b says:"</span>, n),
   }
 }</code></pre>
-        <pre class="term"><span class="prompt">$</span> xq run counter.xq
-value: 42</pre>
+        <pre class="term"><span class="prompt">$</span> XQ_NODE_SECRET=s3cret xq run cluster.xq
+b says: 144</pre>
       </div>
     </div>
   </div>
 </section>
 
-<section class="ideas">
+<section class="transparent">
   <div class="wrap">
-    <h2 class="section-title">Data never changes. The rest follows.</h2>
-    <p class="section-lede">Most of what makes concurrent programs hard — races, locks, one failure taking down
-      everything — comes from mutable state shared between threads. XQ takes mutation out of the language and builds
-      on what is left.</p>
+    <h2 class="section-title">A pid is a pid, on any machine</h2>
+    <p class="section-lede">A program becomes a node with <code>node.start</code>. From then on a process of another
+      machine is one more process: the same verbs, the same patterns in <code>receive</code>, the same order of
+      messages from one sender to one receiver.</p>
+    <div class="dist-grid">
+      <figure class="cluster">
+        <svg viewBox="0 0 520 344" role="img" aria-labelledby="cluster-title">
+          <title id="cluster-title">Three nodes, each connected to the other two, with messages going between their processes</title>
+          <path class="link" d="M220 81 H300"/>
+          <path class="link" d="M118 140 L202 212"/>
+          <path class="link" d="M402 140 L318 212"/>
+          <g class="node">
+            <rect x="20" y="22" width="200" height="118" rx="14"/>
+            <text class="nn" x="38" y="48">a@10.0.0.1</text>
+            <circle class="proc" cx="62" cy="88" r="9"/><text class="pl" x="62" y="118">web</text>
+            <circle class="proc member" cx="120" cy="96" r="9"/><text class="pl" x="120" y="126">ann</text>
+            <circle class="proc" cx="178" cy="86" r="9"/><text class="pl" x="178" y="116">sup</text>
+          </g>
+          <g class="node">
+            <rect x="300" y="22" width="200" height="118" rx="14"/>
+            <text class="nn" x="318" y="48">b@10.0.0.2</text>
+            <circle class="proc" cx="342" cy="88" r="9"/><text class="pl" x="342" y="118">worker</text>
+            <circle class="proc member" cx="402" cy="98" r="9"/><text class="pl" x="402" y="128">bob</text>
+            <circle class="proc" cx="460" cy="86" r="9"/><text class="pl" x="460" y="116">rooms</text>
+          </g>
+          <g class="node">
+            <rect x="160" y="212" width="200" height="118" rx="14"/>
+            <text class="nn" x="178" y="238">c@10.0.0.3</text>
+            <circle class="proc member" cx="204" cy="278" r="9"/><text class="pl" x="204" y="308">eve</text>
+            <circle class="proc" cx="262" cy="288" r="9"/><text class="pl" x="262" y="318">db</text>
+            <circle class="proc" cx="320" cy="276" r="9"/><text class="pl" x="320" y="306">cache</text>
+          </g>
+          <circle class="msg" r="4.5"><animateMotion dur="2.4s" repeatCount="indefinite" path="M220 81 H300"/></circle>
+          <circle class="msg" r="4.5"><animateMotion dur="2.4s" begin="-1.2s" repeatCount="indefinite" path="M300 81 H220"/></circle>
+          <circle class="msg alt" r="4.5"><animateMotion dur="2.8s" begin="-0.5s" repeatCount="indefinite" path="M118 140 L202 212"/></circle>
+          <circle class="msg alt" r="4.5"><animateMotion dur="2.8s" begin="-0.5s" repeatCount="indefinite" path="M402 140 L318 212"/></circle>
+          <circle class="msg" r="4.5"><animateMotion dur="3.2s" begin="-1.6s" repeatCount="indefinite" path="M202 212 L118 140"/></circle>
+        </svg>
+        <figcaption><span><i class="key proc"></i>a process</span><span><i class="key member"></i>a member of
+          group <code>room:42</code></span><span><i class="key link"></i>a connection, one for each pair of
+          nodes</span></figcaption>
+      </figure>
+      <ul class="verbs">
+        <li><span class="v"><code>pid.send(msg)</code></span><span>to any process of the cluster</span></li>
+        <li><span class="v"><code>pid.call(...)</code></span><span>a request and its reply, with a monitor and a timeout</span></li>
+        <li><span class="v"><code>link</code> <code>monitor</code></span><span>its crash, or the loss of its node, comes as a message</span></li>
+        <li><span class="v"><code>pid.kill()</code></span><span>stops it, wherever it runs</span></li>
+        <li><span class="v"><code>node.spawn</code></span><span>starts an exported function on another node</span></li>
+        <li><span class="v"><code>node.find</code></span><span>a process by its name on a node</span></li>
+        <li><span class="v"><code>node.members(g)</code></span><span>every member of a group, on every node: <code>send</code> to them all at once</span></li>
+      </ul>
+    </div>
     <div class="cards">
       <article class="card">
-        <h3>Immutable by design</h3>
-        <p>No <code>let</code>, no assignment, no mutating methods. New values are built from old ones —
-          <code>{ ...p, x: 1 }</code>, <code>[...xs, x]</code>, <code>xs.with(i, v)</code> — and any value can be read
-          from anywhere.</p>
+        <h3>Typed on the wire</h3>
+        <p>The compiler writes a codec for every message type — no walk over terms. The receiving node checks each
+          message against the mailbox type of its receiver: a variant it does not know, from another build of the
+          program, is dropped and counted, never mistaken for another.</p>
       </article>
       <article class="card">
-        <h3>Processes, not threads</h3>
-        <p>Processes with heaps of their own — about 6 KB each, a million at once — exchange messages.
-          <code>receive</code> takes the first message that matches a pattern, and a preemptive scheduler spreads
-          processes over every core.</p>
+        <h3>Process groups</h3>
+        <p><code>node.join</code> and <code>node.members</code>: a group has members on every node and converges as
+          they come and go. A broadcast is encoded once and goes as one frame to each node — 7.4 million deliveries a
+          second on three nodes.</p>
       </article>
       <article class="card">
-        <h3>No garbage collector, no leaks</h3>
-        <p>Immutable values cannot form cycles, so reference counting frees each value right after its last use and
-          never misses one; <code>xq test</code> checks it on every test. Counts need no atomics, and a value with a
-          single owner is updated in place: appends and record updates cost amortized O(1).</p>
+        <h3>A cluster by itself</h3>
+        <p>Connect to one node and you are connected to all of them. A pid carries the address of its node, so the
+          first message to it opens the connection; there is one for each pair of nodes, and order holds in it.</p>
       </article>
       <article class="card">
-        <h3>Failures stay local</h3>
-        <p>Integer overflow, an index out of bounds, a pattern that does not match, stack overflow: only the process
-          crashes, and its heap is freed whole. Links and monitors tell the others; a supervisor restarts it.</p>
+        <h3>Encrypted, no certificates</h3>
+        <p>With <code>encrypt: true</code> frames go through Noise — X25519 and AES-256-GCM, with a key made of the
+          cluster's secret. A node without the secret does not get through the handshake; a call costs 7 % more.</p>
       </article>
       <article class="card">
-        <h3>Loops are recursion</h3>
-        <p>Tail calls are guaranteed, so a process keeps its state in the arguments of its loop and the stack never
-          grows. <code>for (const x of xs)</code> walks collections.</p>
+        <h3>Long messages do not block</h3>
+        <p>A message over 256 KB goes in pieces, and the messages of other processes go between them: a call made
+          while 48 MB goes to the same node takes 1.6 ms on Linux. The messages of one sender still come in order.</p>
       </article>
       <article class="card">
-        <h3>Typed protocols</h3>
-        <p>A message is an ordinary value, so a protocol is a type: records and unions with literal tags. The compiler
-          knows the mailbox type of every function — a message of the wrong type does not compile.</p>
+        <h3>Versions side by side</h3>
+        <p>A message goes as a variant of its type, keyed by the type's text: nodes of different builds work together
+          as long as the messages between them keep their types. <code>node.find</code> checks that a process takes
+          what you mean to send.</p>
       </article>
     </div>
   </div>
 </section>
 
-<section class="perf">
+<section class="failures">
+  <div class="wrap split">
+    <div>
+      <h2 class="section-title">Let it crash. On any machine.</h2>
+      <p class="section-lede">A node that crashes, hangs or drops off the network fires every link and monitor
+        through it, as a crashed process would: <code>Exit</code> and <code>Down</code> with reason
+        <code>noconnection</code>. The patterns of one machine — monitors, links, supervisors — carry over as they
+        are.</p>
+      <ul class="checks">
+        <li><b>Noticed in seconds.</b> A node silent for its timeout (15 s by default) is noticed within it and a
+          second; a connection with nothing to say sends a short frame every second.</li>
+        <li><b>No hanging calls.</b> A <code>call</code> to a process of a node that is gone fails at once with
+          <code>noconnection</code>, without waiting for its timeout.</li>
+        <li><b>The cluster as messages.</b> <code>node.watch()</code> brings <code>nodeup</code> and
+          <code>nodedown</code> to the process that asks.</li>
+        <li><b>Tested across platforms and partitions.</b> Splits and delays between Docker containers, and one
+          cluster of Windows, Linux x86-64 and Linux ARM64 nodes, all built by one <code>xq</code>.</li>
+      </ul>
+    </div>
+<pre class="code" data-lang="xq"><code><span class="kw">import</span> <span class="op">*</span> <span class="kw">as</span> node <span class="kw">from</span> <span class="str">"std/node"</span>;
+<span class="kw">import</span> <span class="op">*</span> <span class="kw">as</span> supervisor <span class="kw">from</span> <span class="str">"std/supervisor"</span>;
+
+<span class="com">// The rooms run on another machine. When it goes</span>
+<span class="com">// away, the supervisor gets an Exit with reason</span>
+<span class="com">// "noconnection" and starts them again: on a node</span>
+<span class="com">// that is still up, or right here.</span>
+<span class="kw">function</span> <span class="fn">startRooms</span>()<span class="op">:</span> <span class="ty">Pid</span><span class="op">&lt;</span>supervisor.<span class="ty">Msg</span><span class="op">&gt;</span> {
+  <span class="kw">return</span> supervisor.<span class="fn">start</span>({
+    strategy<span class="op">:</span> <span class="str">"oneForOne"</span>,
+    intensity<span class="op">:</span> <span class="num">5</span>,
+    period<span class="op">:</span> <span class="num">10000</span>,
+    children<span class="op">:</span> [{ id<span class="op">:</span> <span class="str">"rooms"</span>, start<span class="op">:</span> () <span class="op">=&gt;</span> <span class="fn">onSomeNode</span>() }],
+  });
+}
+
+<span class="kw">function</span> <span class="fn">onSomeNode</span>()<span class="op">:</span> <span class="ty">Pid</span><span class="op">&lt;</span><span class="ty">never</span><span class="op">&gt;</span> {
+  <span class="kw">const</span> up <span class="op">=</span> node.<span class="fn">nodes</span>();
+  <span class="kw">const</span> at <span class="op">=</span> up.length <span class="op">&gt;</span> <span class="num">0</span> <span class="op">?</span> up[<span class="num">0</span>] <span class="op">:</span> node.<span class="fn">name</span>();
+  <span class="kw">const</span> r <span class="op">=</span> node.<span class="bi">spawnLink</span>(at, rooms);
+  <span class="kw">return</span> r.ok <span class="op">?</span> r.value <span class="op">:</span> <span class="bi">spawnLink</span>(rooms);
+}</code></pre>
+  </div>
+</section>
+
+<section class="perf" id="numbers">
   <div class="wrap">
-    <h2 class="section-title">Fast where it matters</h2>
-    <p class="section-lede">The same programs written in each language, on one machine. Higher is better for
-      requests, lower for time.</p>
+    <h2 class="section-title">Measured between nodes</h2>
+    <p class="section-lede">Two nodes on one machine exchange messages, each benchmark written the way its language
+      is written. The reference point is Erlang/OTP, whose distribution XQ's is modelled on. Higher is better, but
+      for the last chart.</p>
+    <div class="charts">
+      <figure class="chart">
+        <figcaption>Calls between two nodes, per second <b class="x">4.4×</b></figcaption>
+        <div class="bars">
+          <div class="row xq"><span class="name">XQ</span><span class="bar" style="--v:100%"></span><span class="val">98,800</span></div>
+          <div class="row"><span class="name">Erlang</span><span class="bar" style="--v:22.7%"></span><span class="val">22,400</span></div>
+        </div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Messages of one sender, per second <b class="x">3.7×</b></figcaption>
+        <div class="bars">
+          <div class="row xq"><span class="name">XQ</span><span class="bar" style="--v:100%"></span><span class="val">2,552,000</span></div>
+          <div class="row"><span class="name">Erlang</span><span class="bar" style="--v:26.7%"></span><span class="val">682,000</span></div>
+        </div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Processes started on another node, per second <b class="x">4.2×</b></figcaption>
+        <div class="bars">
+          <div class="row xq"><span class="name">XQ</span><span class="bar" style="--v:100%"></span><span class="val">80,600</span></div>
+          <div class="row"><span class="name">Erlang</span><span class="bar" style="--v:23.6%"></span><span class="val">19,000</span></div>
+        </div>
+      </figure>
+      <figure class="chart">
+        <figcaption>A broadcast to a group on three nodes, deliveries per second <b class="x">3.8×</b></figcaption>
+        <div class="bars">
+          <div class="row xq"><span class="name">XQ</span><span class="bar" style="--v:100%"></span><span class="val">7,420,000</span></div>
+          <div class="row"><span class="name">Erlang</span><span class="bar" style="--v:26.1%"></span><span class="val">1,940,000</span></div>
+        </div>
+      </figure>
+      <figure class="chart">
+        <figcaption>64 processes calling through one connection, calls per second <b class="x">1.6×</b></figcaption>
+        <div class="bars">
+          <div class="row xq"><span class="name">XQ</span><span class="bar" style="--v:100%"></span><span class="val">296,500</span></div>
+          <div class="row"><span class="name">Erlang</span><span class="bar" style="--v:62.3%"></span><span class="val">184,600</span></div>
+        </div>
+      </figure>
+      <figure class="chart">
+        <figcaption>A call while 48 MB goes to the same node, ms <b class="x">6.4×</b></figcaption>
+        <div class="bars">
+          <div class="row xq"><span class="name">XQ</span><span class="bar" style="--v:15.7%"></span><span class="val">1.6</span></div>
+          <div class="row"><span class="name">Erlang</span><span class="bar" style="--v:100%"></span><span class="val">10.2</span></div>
+        </div>
+      </figure>
+    </div>
+    <p class="note">XQ 0.10.14 and Erlang/OTP 29 — the runtime Elixir runs on too — with <code>erpc</code>,
+      <code>peer</code> and <code>pg</code>; Linux in Docker on Windows 11, Intel Core Ultra 9 275HX, best of three runs.
+      Erlang is ahead in one test of ours: single messages of 16 MB, 1.94 GB/s against 1.85.</p>
+
+    <h3 class="sub">On one machine</h3>
     <div class="charts">
       <figure class="chart">
         <figcaption>HTTP server, requests per second</figcaption>
@@ -153,8 +302,8 @@ value: 42</pre>
         </div>
       </figure>
     </div>
-    <p class="note">Windows 11, Intel Core Ultra 9 275HX, best of three runs; HTTP with 50 connections (HTTPS: XQ
-      277,000, Go 163,000). Measured with XQ 0.4.</p>
+    <p class="note">Windows 11, best of three runs; HTTP with 50 connections (HTTPS: XQ 277,000, Go 163,000). Measured
+      with XQ 0.4.</p>
     <div class="stats">
       <div class="stat"><b>1,000,000</b><span>processes alive at once, about 6 KB each</span></div>
       <div class="stat"><b>36 ms</b><span>for 100,000 ping-pong round trips between two processes</span></div>
@@ -165,12 +314,91 @@ value: 42</pre>
   </div>
 </section>
 
+<section class="toolkit">
+  <div class="wrap">
+    <h2 class="section-title">Everything a system of processes needs</h2>
+    <p class="section-lede">The ideas are decades old and have run telephone networks and chat services for years.
+      XQ keeps them as they are, and adds types and native code.</p>
+    <div class="toolkit-grid">
+      <div class="rosetta">
+        <div class="r"><span class="idea">Lightweight processes, mailboxes, selective receive</span><span class="how"><code>spawn</code>, <code>pid.send</code>, <code>receive</code> with patterns, guards and <code>after</code></span></div>
+        <div class="r"><span class="idea">Request and reply</span><span class="how"><code>pid.call</code>: a pid for the reply, a watch on the server and a timeout, in one call</span></div>
+        <div class="r"><span class="idea">Links, monitors, trapping exits</span><span class="how"><code>link</code>, <code>monitor</code>, <code>trapExit</code> — across nodes too</span></div>
+        <div class="r"><span class="idea">Supervision trees</span><span class="how"><code>std/supervisor</code>: <code>oneForOne</code>, <code>oneForAll</code>, <code>restForOne</code>, limits of restarts</span></div>
+        <div class="r"><span class="idea">Registered names</span><span class="how"><code>spawn({ name })</code>, <code>whereis</code>, <code>node.find</code></span></div>
+        <div class="r"><span class="idea">Nodes and distribution</span><span class="how"><code>node.start</code>, <code>node.connect</code>, <code>node.spawn</code>, <code>nodeup</code> and <code>nodedown</code></span></div>
+        <div class="r"><span class="idea">Process groups</span><span class="how"><code>node.join</code>, <code>node.members</code>, a group across the cluster</span></div>
+        <div class="r"><span class="idea">Binaries</span><span class="how"><code>Uint8Array</code>: buffers travel in messages without copying</span></div>
+        <div class="r"><span class="idea">Let it crash</span><span class="how">a crash stays in its process, and its heap is freed whole</span></div>
+      </div>
+      <div class="adds">
+        <h3>And on top of that</h3>
+        <ul class="checks">
+          <li><b>Types.</b> A protocol is a type, and a message of the wrong type does not compile; on the wire, the
+            receiver checks what comes.</li>
+          <li><b>Native code.</b> LLVM, no virtual machine and no warm-up: a program is one executable, and the
+            archive for Windows or Linux builds it for the other platforms too.</li>
+          <li><b>No garbage collector.</b> Values cannot form cycles, so reference counting frees each one right
+            after its last use: no pauses, and <code>xq test</code> checks that nothing leaks.</li>
+          <li><b>A syntax you can read.</b> TypeScript's, without mutation: records, unions with literal tags, arrow
+            functions, template strings.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="ideas">
+  <div class="wrap">
+    <h2 class="section-title">Data never changes. The rest follows.</h2>
+    <p class="section-lede">Most of what makes concurrent programs hard — races, locks, one failure taking down
+      everything — comes from mutable state shared between threads. XQ takes mutation out of the language and builds
+      on what is left.</p>
+    <div class="cards">
+      <article class="card">
+        <h3>Immutable by design</h3>
+        <p>No <code>let</code>, no assignment, no mutating methods. New values are built from old ones —
+          <code>{ ...p, x: 1 }</code>, <code>[...xs, x]</code>, <code>xs.with(i, v)</code> — and any value can be read
+          from anywhere.</p>
+      </article>
+      <article class="card">
+        <h3>Processes, not threads</h3>
+        <p>Processes with heaps of their own — about 6 KB each, a million at once — exchange messages.
+          <code>receive</code> takes the first message that matches a pattern, and a preemptive scheduler spreads
+          processes over every core.</p>
+      </article>
+      <article class="card">
+        <h3>Updates in place</h3>
+        <p>Reference counts need no atomics, and a value with a single owner is updated in place: appends and record
+          updates cost amortized O(1), as in a language with mutation.</p>
+      </article>
+      <article class="card">
+        <h3>Failures stay local</h3>
+        <p>Integer overflow, an index out of bounds, a pattern that does not match, stack overflow: only the process
+          crashes, and its heap is freed whole. Links and monitors tell the others; a supervisor restarts it.</p>
+      </article>
+      <article class="card">
+        <h3>Loops are recursion</h3>
+        <p>Tail calls are guaranteed, so a process keeps its state in the arguments of its loop and the stack never
+          grows. <code>for (const x of xs)</code> walks collections.</p>
+      </article>
+      <article class="card">
+        <h3>Typed protocols</h3>
+        <p>A message is an ordinary value, so a protocol is a type: records and unions with literal tags. The compiler
+          knows the mailbox type of every function — a message of the wrong type does not compile.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
 <section class="batteries">
   <div class="wrap">
     <h2 class="section-title">Batteries included</h2>
     <p class="section-lede">Waiting stops only its own process: sockets live on an event loop, and errors are values
       of <code>Result&lt;T&gt;</code>. Everything a server needs is in the standard library.</p>
     <ul class="mods">
+      <li><code>std/node</code><span>processes on many machines: <code>send</code>, <code>call</code>, <code>node.spawn</code>, links and monitors across nodes, process groups, a full mesh, encrypted connections, long messages in pieces</span></li>
+      <li><code>std/supervisor</code><span>restart strategies, restart limits, supervision trees, children on other nodes</span></li>
       <li><code>std/net</code><span>TCP, TLS and UDP; length-prefixed frames delivered as messages; one datagram to many addresses</span></li>
       <li><code>std/http</code><span>HTTP/1.1 server with a process per connection, <code>fetch</code>, HTTPS and WebSocket</span></li>
       <li><code>std/pg</code><span>PostgreSQL client in the runtime: one pool for all processes, rows straight into records, <code>LISTEN</code> as messages</span></li>
@@ -179,8 +407,6 @@ value: 42</pre>
       <li><code>std/crypto</code><span>random bytes, HMAC-SHA256, AES-GCM, Ed25519</span></li>
       <li><code>JSON.parse&lt;T&gt;</code><span>parses text straight into compiled values of the type, checking it on the way</span></li>
       <li><code>Binary</code><span>compact binary messages from types, encoders and decoders made by the compiler</span></li>
-      <li><code>std/supervisor</code><span>restart strategies, restart limits, supervision trees</span></li>
-      <li><code>std/node</code><span>processes on several machines, as in Erlang: <code>send</code>, <code>call</code>, <code>node.spawn</code>, links and monitors across nodes, process groups, encrypted connections, messages checked against the receiver's type</span></li>
       <li><code>std/exec</code><span>run programs with pipes or a pseudoterminal; they die with their process</span></li>
       <li><code>std/gpu</code><span>windows and 2D graphics on Vulkan: sprites, shapes, text, custom WGSL materials</span></li>
       <li><code>declare library</code><span>call C functions from any shared library, 7–17 ns per call; slow ones on a thread pool, callbacks into XQ, structs by value</span></li>
@@ -252,12 +478,12 @@ value: 42</pre>
     <h2 class="section-title">Install</h2>
     <p class="section-lede">An archive holds <code>xq</code> and the runtime libraries next to it. On Windows and Linux
       it also holds the LLVM that XQ compiles with, and nothing needs installing; each of these archives builds programs
-      for the other platforms too (<code>xq build --target x86_64-linux</code>). On macOS XQ compiles with clang 15 or
-      later, which you need on the machine.</p>
+      for the other platforms too (<code>xq build --target x86_64-linux</code>), so one machine builds every node of a
+      cluster. On macOS XQ compiles with clang 15 or later, which you need on the machine.</p>
     <div class="downloads">
-<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.13/xq-0.10.13-x86_64-windows.zip" data-os="windows"><span class="os">Windows</span><span class="arch">x86-64</span><span class="file">xq-0.10.13-x86_64-windows.zip · 120 MB</span></a>
-<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.13/xq-0.10.13-x86_64-linux.tar.gz" data-os="linux"><span class="os">Linux</span><span class="arch">x86-64</span><span class="file">xq-0.10.13-x86_64-linux.tar.gz · 118 MB</span></a>
-<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.13/xq-0.10.13-aarch64-linux.tar.gz" data-os="linux-arm"><span class="os">Linux</span><span class="arch">ARM64</span><span class="file">xq-0.10.13-aarch64-linux.tar.gz · 121 MB</span></a>
+<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.14/xq-0.10.14-x86_64-windows.zip" data-os="windows"><span class="os">Windows</span><span class="arch">x86-64</span><span class="file">xq-0.10.14-x86_64-windows.zip · 120 MB</span></a>
+<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.14/xq-0.10.14-x86_64-linux.tar.gz" data-os="linux"><span class="os">Linux</span><span class="arch">x86-64</span><span class="file">xq-0.10.14-x86_64-linux.tar.gz · 118 MB</span></a>
+<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.14/xq-0.10.14-aarch64-linux.tar.gz" data-os="linux-arm"><span class="os">Linux</span><span class="arch">ARM64</span><span class="file">xq-0.10.14-aarch64-linux.tar.gz · 121 MB</span></a>
 <a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.1/xq-0.10.1-aarch64-macos.tar.gz" data-os="macos"><span class="os">macOS</span><span class="arch">Apple Silicon</span><span class="file">xq-0.10.1-aarch64-macos.tar.gz · 48 MB</span></a>
 <a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.1/xq-0.10.1-x86_64-macos.tar.gz" data-os="macos-intel"><span class="os">macOS</span><span class="arch">Intel</span><span class="file">xq-0.10.1-x86_64-macos.tar.gz · 50 MB</span></a>
     </div>
@@ -275,7 +501,7 @@ value: 42</pre>
         <ol>
           <li>Nothing to install: the archive carries clang and lld of LLVM. Programs need glibc 2.39 or later:
             Ubuntu 24.04, Debian 13.</li>
-          <li>Unpack: <code>tar xf xq-0.10.13-x86_64-linux.tar.gz</code>, and add the folder to <code>PATH</code>.</li>
+          <li>Unpack: <code>tar xf xq-0.10.14-x86_64-linux.tar.gz</code>, and add the folder to <code>PATH</code>.</li>
         </ol>
       </div>
       <div class="step" data-os="macos">
@@ -294,19 +520,21 @@ value: 42</pre>
   <span class="bi">console</span>.<span class="fn">log</span>(<span class="str">`Hello, XQ! The answer is ${answer}.`</span>);
 }</code></pre>
       <pre class="term"><span class="prompt">$</span> xq --version
-xq 0.10.13
+xq 0.10.14
 <span class="prompt">$</span> xq run hello.xq
 Hello, XQ! The answer is 42.</pre>
     </div>
-    <p class="next">Next: the <a href="guide.html">guide to the language</a>, then
-      <a href="projects.html">projects and tests</a>; libraries are in <a href="https://akainq.github.io/xq-packages/">the registry</a>. Examples are in <a href="https://github.com/akainq/xq/tree/main/examples">the
-      repository</a>.</p>
+    <p class="next">Next: the <a href="guide.html">guide to the language</a> and its part on
+      <a href="guide.html#several-machines-stdnode">several machines</a>, then <a href="projects.html">projects and
+      tests</a>; libraries are in <a href="https://akainq.github.io/xq-packages/">the registry</a>. Examples are in
+      <a href="https://github.com/akainq/xq/tree/main/examples">the repository</a>, among them a chat on three nodes whose rooms move when
+      their node is gone.</p>
   </div>
 </section>
 
 <footer class="bottom">
   <div class="wrap">
-    <span>XQ 0.10.13</span>
+    <span>XQ 0.10.14</span>
     <span>MIT OR Apache-2.0</span>
     <a href="https://github.com/akainq/xq">github.com/akainq/xq</a>
   </div>
