@@ -3,10 +3,11 @@
 // as nodes b and c; on three machines it would be started three times, with `host` and the
 // secret in `node.start` and the address of node a in `node.connect`.
 //
-// Node a keeps the directory of rooms; a room opens on the next node in turn. Rooms watch their
-// members and forget those that are gone, users watch their rooms. When a node is gone, its rooms
-// open again on another node: the directory opens such a room when it gets its `Down`, or when a
-// member asks where the room is now, whichever comes first, and the members join it there.
+// Node a keeps the directory of rooms; a room starts on the next node in turn (`node.spawn`, which
+// starts the exported function `room` there). Rooms watch their members and forget those that are
+// gone, users watch their rooms. When a node is gone, its rooms start again on another node: the
+// directory starts such a room when it gets its `Down`, or when a member asks where the room is
+// now, whichever comes first, and the members join it there.
 //
 // The program plays the clients of the users: it tells them what to do and prints what they hear.
 //
@@ -23,9 +24,6 @@ type Room =
   | { type: "join"; user: string; to: Pid<Line>; reply: Pid<string> }
   | { type: "say"; user: string; text: string }
   | Down;
-
-/** Opens rooms on its node. */
-type Lobby = { type: "open"; name: string; reply: Pid<Pid<Room>> };
 
 /** The directory of rooms, on node a: where room `name` is; `gone` is where it was, if the
  * member that asks saw it go. */
@@ -46,7 +44,9 @@ export type Main = node.NodeEvent | Client;
 
 type Member = { user: string; to: Pid<Line> };
 
-function room(this: Process<Room>, name: string, members: Member[]): void {
+/** Room `name`: the directory starts it on a node with `node.spawn`, which finds it by its name and
+ * types — an exported function. */
+export function room(this: Process<Room>, name: string, members: Member[]): void {
   receive {
     { type: "join", user, to, reply } => {
       monitor(to);
@@ -61,15 +61,6 @@ function room(this: Process<Room>, name: string, members: Member[]): void {
     { type: "DOWN", pid } => {
       const left = members.filter((m) => m.to !== pid);
       room(name, left);
-    },
-  }
-}
-
-function lobby(this: Process<Lobby>): void {
-  receive {
-    { type: "open", name, reply } => {
-      reply.send(spawn(room, name, []));
-      lobby();
     },
   }
 }
@@ -95,26 +86,15 @@ function directory(this: Process<Dir>, rooms: Map<string, Pid<Room>>, turn: int)
   }
 }
 
-/** Opens room `name` on the node whose turn it is — or the next one, if that one cannot — and
+/** Starts room `name` on the node whose turn it is — or the next one, if that one cannot — and
  * watches it; not on node `not`, which the room is gone with (it may not know that yet). */
 function open(this: Process<Dir>, name: string, turn: int, tries: int, not: string): Pid<Room> {
-  if (tries === 0) panic(`room ${name} opens nowhere`);
+  if (tries === 0) panic(`room ${name} starts nowhere`);
   const all = [...node.nodes(), node.name()].filter((n) => n !== not);
-  const l = lobbyOn(all[turn % all.length]);
-  if (l !== null) {
-    const r = l.call((reply) => ({ type: "open", name, reply }), 5000);
-    if (r.ok) {
-      monitor(r.value);
-      return r.value;
-    }
-  }
-  return open(name, turn + 1, tries - 1, not);
-}
-
-function lobbyOn(on: string): Pid<Lobby> | null {
-  if (on === node.name()) return whereis<Lobby>("lobby");
-  const f = node.find<Lobby>(on, "lobby");
-  return f.ok ? f.value : null;
+  const r = node.spawn(all[turn % all.length], room, name, []);
+  if (!r.ok) return open(name, turn + 1, tries - 1, not);
+  monitor(r.value);
+  return r.value;
 }
 
 function rooms(): Pid<Dir> {
@@ -183,11 +163,10 @@ function enter(
   return mine.set(name, r.value);
 }
 
-/** Nodes b and c: a lobby and a user, until node a is gone. */
+/** Nodes b and c: a user, until node a is gone. */
 function child(this: Process<Main>, name: string, who: string, a: string): void {
   const me = node.start({ name, port: 0, secret: "chat" });
   if (!me.ok) panic(me.error);
-  spawn({ name: "lobby" }, lobby);
   spawn({ name: who }, waiting, who);
   node.watch();
   const c = node.connect(a);
@@ -267,7 +246,6 @@ export function main(this: Process<Main>): void {
   if (!me.ok) panic(me.error);
   node.watch();
   spawn({ name: "rooms" }, directory, new Map(), 0);
-  spawn({ name: "lobby" }, lobby);
   const ann = spawn({ name: "ann" }, waiting, "ann");
   const b = exec.start(
     os.executable(),
