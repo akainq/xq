@@ -57,8 +57,10 @@ b says: 144
 - **Fast.** Between two nodes of one machine (Linux), a call takes 10 µs (Erlang/OTP 29: 45), one sender sends 2.6
   million messages a second (0.68 million), and a broadcast through a group on three nodes makes 7.4 million
   deliveries a second (1.9 million).
-- **The rest of a language.** Immutable values, processes with heaps of their own, reference counting without a
-  garbage collector, supervisors, HTTP, PostgreSQL and Redis clients, C calls, graphics on Vulkan.
+- **The rest of a language.** Immutable values, processes with heaps of their own and memory limits, reference
+  counting without a garbage collector, supervisors, binary protocols (`DataView`, CRC-32C, frames that come as
+  messages), files that survive a crash, HTTP and WebSocket, PostgreSQL and Redis clients, C calls, graphics on
+  Vulkan.
 
 ## Install
 

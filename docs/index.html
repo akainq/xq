@@ -30,7 +30,7 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="hero-text">
-      <p class="eyebrow">XQ 0.10.14 · Windows · Linux · macOS</p>
+      <p class="eyebrow">XQ 0.10.15 · Windows · Linux · macOS</p>
       <h1>One program.<br>Many machines.<br><span class="grad">Native code.</span></h1>
       <p class="lede">XQ is a compiled language for distributed systems. Lightweight isolated processes talk through
         typed messages, and a pid works the same whether its process is next door or on another machine:
@@ -38,7 +38,7 @@
         When a machine goes away, links and monitors say so with a message, and supervisors start the work again
         elsewhere. Programs compile to native code through LLVM — no virtual machine, no garbage collector.</p>
       <div class="cta">
-        <a class="btn primary" href="#install">Install XQ 0.10.14</a>
+        <a class="btn primary" href="#install">Install XQ 0.10.15</a>
         <a class="btn" href="guide.html#several-machines-stdnode">Distribution in the guide</a>
       </div>
       <p class="hint">Built systems out of processes, mailboxes and supervisors before? Then you know how XQ works.
@@ -328,7 +328,9 @@ b says: 144</pre>
         <div class="r"><span class="idea">Registered names</span><span class="how"><code>spawn({ name })</code>, <code>whereis</code>, <code>node.find</code></span></div>
         <div class="r"><span class="idea">Nodes and distribution</span><span class="how"><code>node.start</code>, <code>node.connect</code>, <code>node.spawn</code>, <code>nodeup</code> and <code>nodedown</code></span></div>
         <div class="r"><span class="idea">Process groups</span><span class="how"><code>node.join</code>, <code>node.members</code>, a group across the cluster</span></div>
-        <div class="r"><span class="idea">Binaries</span><span class="how"><code>Uint8Array</code>: buffers travel in messages without copying</span></div>
+        <div class="r"><span class="idea">Binaries</span><span class="how"><code>Uint8Array</code> and <code>DataView</code>: buffers travel in messages without copying, numbers in either byte order</span></div>
+        <div class="r"><span class="idea">Active sockets, flow control</span><span class="how"><code>net.frames</code>: frames come as messages; <code>net.pause</code> holds a sender back</span></div>
+        <div class="r"><span class="idea">A heap limit per process</span><span class="how"><code>os.limitMemory</code>: a process past it crashes alone</span></div>
         <div class="r"><span class="idea">Let it crash</span><span class="how">a crash stays in its process, and its heap is freed whole</span></div>
       </div>
       <div class="adds">
@@ -481,9 +483,9 @@ b says: 144</pre>
       for the other platforms too (<code>xq build --target x86_64-linux</code>), so one machine builds every node of a
       cluster. On macOS XQ compiles with clang 15 or later, which you need on the machine.</p>
     <div class="downloads">
-<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.14/xq-0.10.14-x86_64-windows.zip" data-os="windows"><span class="os">Windows</span><span class="arch">x86-64</span><span class="file">xq-0.10.14-x86_64-windows.zip · 120 MB</span></a>
-<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.14/xq-0.10.14-x86_64-linux.tar.gz" data-os="linux"><span class="os">Linux</span><span class="arch">x86-64</span><span class="file">xq-0.10.14-x86_64-linux.tar.gz · 118 MB</span></a>
-<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.14/xq-0.10.14-aarch64-linux.tar.gz" data-os="linux-arm"><span class="os">Linux</span><span class="arch">ARM64</span><span class="file">xq-0.10.14-aarch64-linux.tar.gz · 121 MB</span></a>
+<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.15/xq-0.10.15-x86_64-windows.zip" data-os="windows"><span class="os">Windows</span><span class="arch">x86-64</span><span class="file">xq-0.10.15-x86_64-windows.zip · 120 MB</span></a>
+<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.15/xq-0.10.15-x86_64-linux.tar.gz" data-os="linux"><span class="os">Linux</span><span class="arch">x86-64</span><span class="file">xq-0.10.15-x86_64-linux.tar.gz · 118 MB</span></a>
+<a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.15/xq-0.10.15-aarch64-linux.tar.gz" data-os="linux-arm"><span class="os">Linux</span><span class="arch">ARM64</span><span class="file">xq-0.10.15-aarch64-linux.tar.gz · 121 MB</span></a>
 <a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.1/xq-0.10.1-aarch64-macos.tar.gz" data-os="macos"><span class="os">macOS</span><span class="arch">Apple Silicon</span><span class="file">xq-0.10.1-aarch64-macos.tar.gz · 48 MB</span></a>
 <a class="dl" href="https://github.com/akainq/xq/releases/download/v0.10.1/xq-0.10.1-x86_64-macos.tar.gz" data-os="macos-intel"><span class="os">macOS</span><span class="arch">Intel</span><span class="file">xq-0.10.1-x86_64-macos.tar.gz · 50 MB</span></a>
     </div>
@@ -501,7 +503,7 @@ b says: 144</pre>
         <ol>
           <li>Nothing to install: the archive carries clang and lld of LLVM. Programs need glibc 2.39 or later:
             Ubuntu 24.04, Debian 13.</li>
-          <li>Unpack: <code>tar xf xq-0.10.14-x86_64-linux.tar.gz</code>, and add the folder to <code>PATH</code>.</li>
+          <li>Unpack: <code>tar xf xq-0.10.15-x86_64-linux.tar.gz</code>, and add the folder to <code>PATH</code>.</li>
         </ol>
       </div>
       <div class="step" data-os="macos">
@@ -520,7 +522,7 @@ b says: 144</pre>
   <span class="bi">console</span>.<span class="fn">log</span>(<span class="str">`Hello, XQ! The answer is ${answer}.`</span>);
 }</code></pre>
       <pre class="term"><span class="prompt">$</span> xq --version
-xq 0.10.14
+xq 0.10.15
 <span class="prompt">$</span> xq run hello.xq
 Hello, XQ! The answer is 42.</pre>
     </div>
@@ -534,7 +536,7 @@ Hello, XQ! The answer is 42.</pre>
 
 <footer class="bottom">
   <div class="wrap">
-    <span>XQ 0.10.14</span>
+    <span>XQ 0.10.15</span>
     <span>MIT OR Apache-2.0</span>
     <a href="https://github.com/akainq/xq">github.com/akainq/xq</a>
   </div>
